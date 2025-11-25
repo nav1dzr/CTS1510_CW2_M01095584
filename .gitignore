@@ -1,5 +1,5 @@
 venv/
-DATA/
+/DATA/
 __pycache__/
 *.pyc
 .env
@@ -7,3 +7,4 @@ __pycache__/
 .idea/
 *.sqlite3
 *.db
+app/**/__pycache__/
