@@ -42,27 +42,3 @@ def load_cyber_csv():
     """
     df = pd.read_csv("DATA/cyber_incidents.csv")
     return df
-
-
-# -------------------------
-# MIGRATE CSV → Into DB
-# -------------------------
-def migrate_cyber_csv_to_db():
-    df = load_cyber_csv()
-
-    # Drop columns not needed
-    drop_cols = ["incident_id", "status"]
-    df = df.drop(columns=[col for col in drop_cols if col in df.columns])
-
-    # Rename CSV columns to match DB schema
-    df = df.rename(columns={
-        "category": "incident_type",
-        "timestamp": "date"
-    })
-
-    # Keep only valid DB columns
-    df = df[["incident_type", "severity", "date", "description"]]
-
-    conn = get_connection()
-    df.to_sql("cyber_incidents", conn, if_exists="append", index=False)
-    conn.close()
