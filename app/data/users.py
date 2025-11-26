@@ -1,79 +1,66 @@
+import bcrypt
 from app.data.db import get_connection
 
-# -------------------------
-# CREATE (Add user)
-# -------------------------
-def add_user(username, password_hash):
+# --------------------------
+# Register new user
+# --------------------------
+def register_user(username: str, password: str):
+    """
+    Create a new user and store a hashed password.
+    """
     conn = get_connection()
     curr = conn.cursor()
 
-    sql = """INSERT INTO users (username, password_hash)
-             VALUES (?, ?)"""
+    # hash password
+    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-    try:
-        curr.execute(sql, (username, password_hash))
-        conn.commit()
-        return True
-    except Exception as e:
-        print(f"Error adding user: {e}")
-        return False
-    finally:
-        conn.close()
+    sql = """
+        INSERT INTO users (username, password_hash)
+        VALUES (?, ?)
+    """
 
-
-# -------------------------
-# READ (Get all users)
-# -------------------------
-def get_all_users():
-    conn = get_connection()
-    curr = conn.cursor()
-
-    curr.execute("SELECT * FROM users")
-    users = curr.fetchall()
-
+    curr.execute(sql, (username, hashed))
+    conn.commit()
     conn.close()
-    return users
-
-
-# -------------------------
-# READ (Get one user)
-# -------------------------
-def get_user_by_username(username):
+# --------------------------
+# Get user by username
+# --------------------------
+def get_user_by_username(username: str):
+    """
+    Return one row: (id, username, password_hash) or None.
+    """
     conn = get_connection()
     curr = conn.cursor()
 
-    sql = "SELECT * FROM users WHERE username = ?"
+    sql = "SELECT id, username, password_hash FROM users WHERE username = ?"
     curr.execute(sql, (username,))
     user = curr.fetchone()
 
     conn.close()
     return user
 
+# --------------------------
+# Check password
+# --------------------------
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Compare plain text password with the stored hash.
+    """
+    return bcrypt.checkpw(
+        plain_password.encode(),
+        hashed_password.encode()
+    )
 
-# -------------------------
-# UPDATE (Change password)
-# -------------------------
-def update_user_password(username, new_hash):
+# --------------------------
+# Helper for debugging / tests
+# --------------------------
+def get_all_users():
     conn = get_connection()
     curr = conn.cursor()
 
-    sql = """UPDATE users
-             SET password_hash = ?
-             WHERE username = ?"""
+    sql = "SELECT id, username FROM users"
+    curr.execute(sql)
+    rows = curr.fetchall()
 
-    curr.execute(sql, (new_hash, username))
-    
-    conn.commit()
     conn.close()
-
-
-# -------------------------
-# DELETE (Remove user)
-# -------------------------
-def delete_user(username):
-    conn = get_connection()
-    curr = conn.cursor()
-
-    curr.execute("DELETE FROM users WHERE username = ?", (username,))
-    conn.commit()
-    conn.close()
+    return rows
