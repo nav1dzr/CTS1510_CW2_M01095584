@@ -1,107 +1,88 @@
 import streamlit as st
 import pandas as pd
-from app.data.db import get_connection
 import plotly.express as px
 
-import streamlit as st
+from session_manager import is_logged_in, logout_user
+from app.data.incidents import load_incidents
+from app.data.datasets import load_datasets_metadata
+from app.data.tickets import load_it_tickets
 
-# ACCESS CONTROL
-if "user" not in st.session_state:
+# ----------------------------
+# AUTH CHECK
+# ----------------------------
+if not is_logged_in():
     st.error("You must log in to access the dashboard.")
-    st.page_link("pages/1_Login.py", label="Go to Login", icon="🔑")
     st.stop()
 
+st.title("📊 Intelligence Dashboard")
 
+# Logout Button (top-right)
+st.sidebar.button("Logout", on_click=logout_user, use_container_width=True)
 
-# -----------------------------
-# LOAD DATA FROM DATABASE
-# -----------------------------
-def load_incidents():
-    conn = get_connection()
-    df = pd.read_sql_query("SELECT * FROM cyber_incidents", conn)
-    conn.close()
-    return df
+# ----------------------------
+# TABS
+# ----------------------------
+tab1, tab2, tab3 = st.tabs([
+    "🛡 Cybersecurity Incidents",
+    "📚 Dataset Metadata",
+    "🧾 IT Ticket Analytics"
+])
 
-df = load_incidents()
+# ===============================================================
+# TAB 1 — CYBER INCIDENTS
+# ===============================================================
+with tab1:
+    st.subheader("Cybersecurity Incidents")
 
-# -----------------------------
-# PAGE TITLE
-# -----------------------------
-st.title("📊 Dashboard")
-st.write("### Sample Cyber Incidents")
+    df = load_incidents()
 
-# -----------------------------
-# SUMMARY METRICS
-# -----------------------------
-total_incidents = len(df)
-critical_count = (df["severity"] == "Critical").sum()
-phishing_count = (df["incident_type"] == "Phishing").sum()
+    # Metrics
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Incidents", len(df))
+    col2.metric("Critical", (df["severity"] == "Critical").sum())
+    col3.metric("Phishing", (df["incident_type"] == "Phishing").sum())
 
-col1, col2, col3 = st.columns(3)
-col1.metric("Total Incidents", total_incidents)
-col2.metric("Critical Incidents", critical_count)
-col3.metric("Phishing Incidents", phishing_count)
+    st.write("### Incident Records")
+    st.dataframe(df)
 
-st.write("---")
+    # Chart: Severity
+    st.write("### Incidents by Severity")
+    st.bar_chart(df["severity"].value_counts())
 
-# -----------------------------
-# FILTERS
-# -----------------------------
-st.subheader("Filter Incidents")
+    # Chart: Incident Types (Pie)
+    fig = px.pie(df, names="incident_type", title="Incident Type Distribution")
+    st.plotly_chart(fig)
 
-severity_list = df["severity"].unique()
-type_list = df["incident_type"].unique()
+# ===============================================================
+# TAB 2 — DATASET METADATA
+# ===============================================================
+with tab2:
+    st.subheader("Dataset Metadata Overview")
 
-col1, col2 = st.columns(2)
-selected_severity = col1.selectbox("Select Severity", ["All"] + list(severity_list))
-selected_type = col2.selectbox("Select Incident Type", ["All"] + list(type_list))
+    df_meta = load_datasets_metadata()
 
-filtered_df = df.copy()
+    st.write("### Raw Metadata")
+    st.dataframe(df_meta)
 
-if selected_severity != "All":
-    filtered_df = filtered_df[filtered_df["severity"] == selected_severity]
+    # Records chart
+    st.write("### Dataset Size Comparison")
+    fig_meta = px.bar(df_meta, x="dataset_name", y="records",
+                      title="Record Count per Dataset")
+    st.plotly_chart(fig_meta)
 
-if selected_type != "All":
-    filtered_df = filtered_df[filtered_df["incident_type"] == selected_type]
+# ===============================================================
+# TAB 3 — IT TICKETS
+# ===============================================================
+with tab3:
+    st.subheader("IT Ticket Analytics")
 
-st.write("### Filtered Results")
-st.dataframe(filtered_df)
+    df_tickets = load_it_tickets()
 
-st.write("---")
+    st.write("### Ticket Records")
+    st.dataframe(df_tickets)
 
-# -----------------------------
-# CHART 1: BAR CHART
-# -----------------------------
-st.subheader("Incidents by Severity")
-severity_counts = df["severity"].value_counts()
-st.bar_chart(severity_counts)
-
-# -----------------------------
-# CHART 2: PIE CHART
-# -----------------------------
-st.subheader("Incident Type Distribution")
-fig = px.pie(
-    df,
-    names="incident_type",
-    title="Incident Types",
-    color_discrete_sequence=px.colors.qualitative.Pastel
-)
-st.plotly_chart(fig)
-
-# -----------------------------
-# CHART 3: TIMELINE
-# -----------------------------
-st.subheader("Incident Timeline")
-
-df_sorted = df.sort_values("date")
-df_sorted["date"] = pd.to_datetime(df_sorted["date"], errors="coerce")
-
-timeline = df_sorted.set_index("date").resample("M").size()
-
-st.line_chart(timeline)
-
-
-if st.sidebar.button("Logout"):
-    st.session_state.pop("user")
-    st.rerun()
-    st.success("You have been logged out.")
+    # Bar chart of priorities
+    st.write("### Tickets by Priority")
+    fig_t = px.bar(df_tickets["priority"].value_counts(),
+                   title="Priority Distribution")
+    st.plotly_chart(fig_t)
