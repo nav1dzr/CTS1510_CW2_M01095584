@@ -1,19 +1,26 @@
 import streamlit as st
-from app.data.users import register_user, get_user_by_username
+from app.data.users import register_user
+from session_manager import is_logged_in
 
 st.title("📝 Register")
+
+st.set_page_config(
+    page_title="Your App",
+    page_icon="🛡️",
+    initial_sidebar_state="collapsed",
+    layout="wide"
+)
+
+if is_logged_in():
+    st.success("You are already logged in!")
+    st.stop()
 
 username = st.text_input("Choose a username")
 password = st.text_input("Choose a password", type="password")
 
 if st.button("Create Account"):
-    if not username or not password:
-        st.error("Please enter both username and password.")
+    if username and password:
+        register_user(username, password)
+        st.success("Account created! You can now log in.")
     else:
-        # Check if user exists
-        if get_user_by_username(username):
-            st.error("This username already exists.")
-        else:
-            register_user(username, password)
-            st.success("Account created! You can now log in.")
-            st.page_link("pages/1_Login.py", label="Proceed to Login")
+        st.error("Please fill all fields.")

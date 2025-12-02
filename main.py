@@ -31,10 +31,6 @@ if "user" in st.session_state:
 
     st.page_link("pages/3_Dashboard.py", label="📊 Go to Dashboard")
 
-    # Logout button
-    if st.button("Logout"):
-        st.session_state.pop("user")
-        st.rerun()
 
 else:
     st.info("You are not logged in.")
