@@ -1,12 +1,16 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-
-from session_manager import require_login
+from session_manager import require_login, logout_user, is_logged_in
 from app.data.incidents import load_all_incidents
 from app.data.datasets import load_dataset_metadata
 from app.data.tickets import load_it_tickets
 
+st.session_state["current_page"] = "dashboard"
+from components.ai_assistant import floating_ai_chat  
 
 # ----------------------
 # REQUIRE LOGIN
@@ -157,3 +161,7 @@ with tab3:
 
     timeline_it = df_it.set_index("created_at").resample("M").size()
     st.line_chart(timeline_it)
+
+
+# Add AI assistant at the bottom of Dashboard
+floating_ai_chat()

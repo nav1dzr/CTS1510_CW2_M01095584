@@ -1,4 +1,7 @@
 import streamlit as st
+from components.ai_assistant import backend_chat_handler
+
+st.experimental_connection("open_chat", backend_chat_handler)
 
 st.set_page_config(
     page_title="Cyber Intelligence Platform",

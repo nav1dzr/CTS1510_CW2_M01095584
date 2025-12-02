@@ -2,6 +2,10 @@ import streamlit as st
 from app.data.users import get_user_by_username, verify_password
 from session_manager import login_user, is_logged_in
 
+
+st.session_state["current_page"] = "login"
+from components.ai_assistant import floating_ai_chat
+
 # --------------------------
 # PAGE CONFIG
 # --------------------------
@@ -46,3 +50,5 @@ if st.button("Login"):
 # --------------------------
 st.write("---")
 st.page_link("pages/2_Register.py", label="📝 Create a new account")
+
+floating_ai_chat()
